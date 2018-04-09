@@ -67,38 +67,66 @@ app.get('/',function(req,res,next){
 				superagent.get(href).end((err,sres)=>{
 					if(err){reject(err)}
 					var $ = cheerio.load(sres.text);
-					//里面放入每个人医生的name和href,在循环里，看是否有分页，在一个页面里面先确定有几个分页
-					var $page = $('.body_box.dorctorlist .page');
-					var page = $page.children('a').length - 1;
-					var hrefs =[];
-					//根据有几个doctors的href来判断有几个页面
-					if(page<0){
-						//当前只有一个页面
-						hrefs.push(href);
-						page=1;
-																		
-					}else{
-						//当前有>=2个页面的时候
-						hrefs[0] = href;
-						page = page;
-						for(let i= 1;i<){
-						}
-										
-					}	
+					//根据医生总数确定有几个分页
+					var totalDocs = parseInt($('.body_box.dorctorlist .part1 .s2').text()),//医生总数
+					page = Math.ceil(totalDocs/10),//一共有page个页面
+					hrefStr = href.split('.html')[0] + '/p/',
+					hrefs =[];
+					//将分页放入组里
+					for(let i = 1;i<= page;i++){
+						hrefs.push(hrefStr + i + '.html')
+					}
+					//对整页医生的独立信息的链接进行保存；然后再对每一页进行serach
+					//当前需要遍历循环的有Page页面的医生，对每个页面遍历然后保存到doctors里面
 					
-					console.log(hrefs)			
-					//对医生的独立信息的链接进行保存；
+					//===========================????????????????????bug?????=========================
+					const hrefsAwait = (link)=>{
+						//对单页面进行访问，然后添加到doctors 对象中
+						return new Promise((resolve,reject)=>{
+							superagent.get(link).end((err,sres)=>{
+								var $ = cheerio.load(sres.text);
+								console.log('end')
+							//录入每一个医生的相关信息
+								//$('.body_box.dorctorlist  .datalist').find('.item').each((index,ele)=>{
+								//	var $ele = $(ele),
+								//	docHref = 'www.pumch' + $ele.find('a').attr('href'),
+								//	docName = $ele.find('.info>.inline>.h2').text();
+								//	doctors.push({ docHref:docHref,docName:docName})
+								//})					
+							})
+
+						})
+						
+				
+					}
+
+					async function hrefsFun(hrefs){
+						try{
+							for(let j = 0;j < hrefs.length;){
+								console.log(j);
+								var link = hrefs[j];
+								//对其中的每一个单页面进行访问，await函数中循环添加到doctors对象下
+								var val =  await hrefsAwait(link);
+								j++;
+							}
+
+						}catch(err){console.log('Error is',err)}
+						
+					} 
 					
-					doctors.push({
-						page:page	
-					})
+					
+					
+					//doctors.push({ hrefs:hrefs })
+					hrefsFun(hrefs);
 					resolve(doctors);
 					return doctors;
 					
 				});
 				
 			})
-			//.then((k)=>{console.log(k);});
+			//.then((doctors)=>{
+				
+			//});
 		}
 		
 
