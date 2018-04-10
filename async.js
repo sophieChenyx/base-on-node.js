@@ -76,48 +76,47 @@ app.get('/',function(req,res,next){
 					for(let i = 1;i<= page;i++){
 						hrefs.push(hrefStr + i + '.html')
 					}
-					//对整页医生的独立信息的链接进行保存；然后再对每一页进行serach
-					//当前需要遍历循环的有Page页面的医生，对每个页面遍历然后保存到doctors里面
-					
 					//===========================????????????????????bug?????=========================
 					const hrefsAwait = (link)=>{
 						//对单页面进行访问，然后添加到doctors 对象中
+						
 						return new Promise((resolve,reject)=>{
 							superagent.get(link).end((err,sres)=>{
 								var $ = cheerio.load(sres.text);
-								console.log('end')
-							//录入每一个医生的相关信息
-								//$('.body_box.dorctorlist  .datalist').find('.item').each((index,ele)=>{
-								//	var $ele = $(ele),
-								//	docHref = 'www.pumch' + $ele.find('a').attr('href'),
-								//	docName = $ele.find('.info>.inline>.h2').text();
-								//	doctors.push({ docHref:docHref,docName:docName})
-								//})					
+							//录入每一个医生的相关信息:出现了一个两个小时都没有解决掉的Bug 就是
+								$('.part1 #datalist').find('.item').each(function(index,ele){
+									var $ele = $(ele);
+									var docHref = 'www.pumch' + $ele.find('a').attr('href');
+									var docName = $ele.find('.info>.inline>.h2').text();
+									doctors.push({ docHref:docHref,docName:docName})
+								})			
 							})
 
 						})
 						
-				
 					}
 
 					async function hrefsFun(hrefs){
-						try{
-							for(let j = 0;j < hrefs.length;){
-								console.log(j);
-								var link = hrefs[j];
+						try{	
+							let len = hrefs.length;
+							for(let link of hrefs){
 								//对其中的每一个单页面进行访问，await函数中循环添加到doctors对象下
 								var val =  await hrefsAwait(link);
-								j++;
 							}
+							//let i = 0,len = hrefs.length;	
+							//while(i<len){
+							//	var link = hrefs[i];
+							//	var val =  await hrefsAwait(link);
+							//	console.log(i)
+							//	i++;							
+							//}
+							
 
 						}catch(err){console.log('Error is',err)}
 						
 					} 
 					
-					
-					
-					//doctors.push({ hrefs:hrefs })
-					hrefsFun(hrefs);
+					hrefsFun(hrefs)//.then(()=>{console.log('async fun has end')})
 					resolve(doctors);
 					return doctors;
 					
@@ -152,6 +151,7 @@ app.get('/',function(req,res,next){
 						obj[i].doctors = doctors;
 						
 					}	
+					
 				}
 				
 				
@@ -168,13 +168,45 @@ app.get('/',function(req,res,next){
 		
 	},function(err){ console.error('Error',err )})
 		.then(function(items){
+			//拿到items对象,循环请求每一个href然后给doctors上绑定一个可以生成的对象,再吧items和images文件导出
+			const messageReq = (link) =>{
+				return new Promise((resolve,reject)=>{
+					console.log('显示正常')
+					superagent.get(link).end((err,sres)=>{
+						console.log('2')
+						//var $ = cheerio.load(sres.text)
+						//返回的是从link 中获取到相关的数据,同时导出
+					})				
+				})
+			}
+			const num = (link)=>{
+				return new Promise((resolve,reject)=>{  })
+				console.log(link)			
+			}
+			async function itemsFun(items){
+				for(let item of items){
+					let departments = item.departments
+					for(let docs of departments){
+						let doctors = docs.doctors;
+						for(let doc of doctors){
+							let link = doc.docHref;
+							console.log('1')
+							let docMessage = await messageReq(link);//只显示到2
+							console.log('3')
+							doc.docMessage = '4';
+						}	
+					}
+				}
+
+			}
 			
+			itemsFun(items).then(()=>{console.log('has finished')})
 			res.send(items);
 		})
 	
 
 })
 
-app.listen(3000,function(){
-	console.log('3000 port is running')
+app.listen(8090,function(){
+	console.log('port is running')
 })
