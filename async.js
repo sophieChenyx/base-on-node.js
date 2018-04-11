@@ -245,12 +245,38 @@ app.get('/',function(req,res,next){
 			return link(items)//.then((item)=>{ return items })
 			
 		}).then((items)=>{	
-			//最后显示的items的输出		
-			res.send(items);	})
+			//最后显示的items的输出	此时已经有了所有医生的详情信息；我觉得总是这样循环是不是不太好
+
+			async function message(items){
+				for(let item of items){
+					var departments = item.departments;
+					for(let department of departments){
+						var doctors = [];
+						var hrefs = department.hrefs;
+						var len = hrefs.length;
+						
+						for(let i=0;i<hrefs.length;i++){
+							var link = hrefs[i];
+							//得到一个doctors的对象，挂到 department 下；//此时返回的是一个单页面中的医生信息，累加就好了
+							var simpleDocs = await hrefsAwait(link);
+							doctors = doctors.concat(simpleDocs);
+						}
+						department.doctors = doctors;
+					}
+				}
+				return items
+			}
+
+			//messaage(items)
+
+			//return items;
+			res.send(items);
+				
+		})//.then((items)=>{ res.send(items); })
 	
 
 })
 
-app.listen(8090,function(){
+app.listen(8000,function(){
 	console.log('port is running')
 })
