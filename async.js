@@ -46,6 +46,7 @@ app.get('/',function(req,res,next){
 							href:href
 						})
 					});
+					
 					items.push({
 						name:$ele.find('.caption').text(),
 						departments:departments
@@ -76,33 +77,35 @@ app.get('/',function(req,res,next){
 					for(let i = 1;i<= page;i++){
 						hrefs.push(hrefStr + i + '.html')
 					}
+						
 					//===========================????????????????????bug?????=========================
-					const hrefsAwait = (link)=>{
+					//const hrefsAwait = (link)=>{
 						//对单页面进行访问，然后添加到doctors 对象中
 						
-						return new Promise((resolve,reject)=>{
-							superagent.get(link).end((err,sres)=>{
-								var $ = cheerio.load(sres.text);
+					//	return new Promise((resolve,reject)=>{
+					//		superagent.get(link).end((err,sres)=>{
+					//			var $ = cheerio.load(sres.text);
 							//录入每一个医生的相关信息:出现了一个两个小时都没有解决掉的Bug 就是
-								$('.part1 #datalist').find('.item').each(function(index,ele){
-									var $ele = $(ele);
-									var docHref = 'www.pumch' + $ele.find('a').attr('href');
-									var docName = $ele.find('.info>.inline>.h2').text();
-									doctors.push({ docHref:docHref,docName:docName})
-								})			
-							})
-
-						})
+					//			$('.part1 #datalist').find('.item').each(function(index,ele){
+					//				var $ele = $(ele);
+					//				var docHref = 'www.pumch' + $ele.find('a').attr('href');
+					//				var docName = $ele.find('.info>.inline>.h2').text();
+					//				doctors.push({ docHref:docHref,docName:docName})
+					//			})	
+					//					
+					//		})
+					//	})//.then(()=>{})
 						
-					}
+					//}
 
-					async function hrefsFun(hrefs){
-						try{	
-							let len = hrefs.length;
-							for(let link of hrefs){
+					//async function hrefsFun(hrefs){
+					//	try{	
+					//		let len = hrefs.length;
+					//		for(let link of hrefs){
 								//对其中的每一个单页面进行访问，await函数中循环添加到doctors对象下
-								var val =  await hrefsAwait(link);
-							}
+					//			var val =  await hrefsAwait(link);
+
+					//		}
 							//let i = 0,len = hrefs.length;	
 							//while(i<len){
 							//	var link = hrefs[i];
@@ -111,21 +114,19 @@ app.get('/',function(req,res,next){
 							//	i++;							
 							//}
 							
-
-						}catch(err){console.log('Error is',err)}
+					//	}catch(err){console.log('Error is',err)}
 						
-					} 
+					//} 
 					
-					hrefsFun(hrefs)//.then(()=>{console.log('async fun has end')})
-					resolve(doctors);
-					return doctors;
+					//hrefsFun(hrefs)//.then(()=>{console.log('async fun has end')})
+					resolve(hrefs);//不能直接return ，否则就只有单次循环
 					
 				});
 				
 			})
-			//.then((doctors)=>{
-				
-			//});
+			.then((hrefs)=>{
+				return hrefs
+			});
 		}
 		
 
@@ -147,9 +148,8 @@ app.get('/',function(req,res,next){
 					for(let i in obj){
 						//这里面现在是单个小对象，需要将这些每一个下面挂入doctors
 						var href = obj[i].href;
-						var doctors = await getResData(href);
-						obj[i].doctors = doctors;
-						
+						var hrefs = await getResData(href);
+						obj[i].hrefs = hrefs;
 					}	
 					
 				}
@@ -166,43 +166,87 @@ app.get('/',function(req,res,next){
 	 	return asyncFun(items)
 		
 		
-	},function(err){ console.error('Error',err )})
-		.then(function(items){
+	},function(err){ console.error('Error',err )}).then(function(items){
 			//拿到items对象,循环请求每一个href然后给doctors上绑定一个可以生成的对象,再吧items和images文件导出
-			const messageReq = (link) =>{
-				return new Promise((resolve,reject)=>{
-					console.log('显示正常')
-					superagent.get(link).end((err,sres)=>{
-						console.log('2')
+			//const messageReq = (link) =>{
+			//	return new Promise((resolve,reject)=>{
+			//		console.log('显示正常')
+			//		superagent.get(link).end((err,sres)=>{
+			//			console.log('2')
 						//var $ = cheerio.load(sres.text)
 						//返回的是从link 中获取到相关的数据,同时导出
-					})				
-				})
+			//		})				
+			//	})
+			//}
+			//const num = (link)=>{
+			//	return new Promise((resolve,reject)=>{  })
+			//	console.log(link)			
+			//}
+			//async function itemsFun(items){
+			//	for(let item of items){
+			//		let departments = item.departments
+			//		for(let docs of departments){
+			//			let doctors = docs.doctors;
+			//			for(let doc of doctors){
+			//				let link = doc.docHref;
+			//				console.log('1')
+			//				let docMessage = await messageReq(link);//只显示到2
+			//				console.log('3')
+			//				doc.docMessage = '4';
+			//			}	
+			//		}
+			//	}
+
+			//}
+			
+			//itemsFun(items).then(()=>{console.log('has finished')})
+
+
+			//--------------------现在是遍历hrefs来获取返回的值；获取到href给department,当前可以获取到一个系中的所有医生的信息
+			const hrefsAwait = (link)=>{
+				//对单页面进行访问，然后添加到doctors 对象中		
+				return new Promise((resolve,reject)=>{
+					superagent.get(link).end((err,sres)=>{
+						var $ = cheerio.load(sres.text);
+						var simpleDocs = [];//单页面中的所有的docs信息
+					//录入每一个医生的相关信息:出现了一个两个小时都没有解决掉的Bug 就是
+						$('.part1 #datalist').find('.item').each(function(index,ele){
+							var $ele = $(ele);
+							var docHref = 'www.pumch' + $ele.find('a').attr('href');
+							var docName = $ele.find('.info>.inline>.h2').text();
+							simpleDocs.push({ docHref:docHref,docName:docName})			
+						})
+						resolve(simpleDocs)
+					})
+				}).then((simpleDocs)=>{ return simpleDocs })
+						
 			}
-			const num = (link)=>{
-				return new Promise((resolve,reject)=>{  })
-				console.log(link)			
-			}
-			async function itemsFun(items){
+
+			async function link(items){
 				for(let item of items){
-					let departments = item.departments
-					for(let docs of departments){
-						let doctors = docs.doctors;
-						for(let doc of doctors){
-							let link = doc.docHref;
-							console.log('1')
-							let docMessage = await messageReq(link);//只显示到2
-							console.log('3')
-							doc.docMessage = '4';
-						}	
+					var departments = item.departments;
+					for(let department of departments){
+						var doctors = [];
+						var hrefs = department.hrefs;
+						var len = hrefs.length;
+						
+						for(let i=0;i<hrefs.length;i++){
+							var link = hrefs[i];
+							//得到一个doctors的对象，挂到 department 下；//此时返回的是一个单页面中的医生信息，累加就好了
+							var simpleDocs = await hrefsAwait(link);
+							doctors = doctors.concat(simpleDocs);
+						}
+						department.doctors = doctors;
 					}
 				}
-
+				return items
 			}
+
+			return link(items)//.then((item)=>{ return items })
 			
-			itemsFun(items).then(()=>{console.log('has finished')})
-			res.send(items);
-		})
+		}).then((items)=>{	
+			//最后显示的items的输出		
+			res.send(items);	})
 	
 
 })
