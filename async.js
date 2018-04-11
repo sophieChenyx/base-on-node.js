@@ -245,34 +245,46 @@ app.get('/',function(req,res,next){
 			return link(items)//.then((item)=>{ return items })
 			
 		}).then((items)=>{	
-			//最后显示的items的输出	此时已经有了所有医生的详情信息；我觉得总是这样循环是不是不太好
+			//最后显示的items的输出	此时已经有了所有医生的详情信息；我觉得总是这样循环是不是不太好,然后再在这个function中 获取对应的图片和医生的具体信息
+			const detail = (link)=>{
+				return new Promise((resolve,reject)=>{
+					superagent.get(link).end((err,sres)=>{
+						if(err){console.error('Error',err)}
+						var $ = cheerio.load(sres.text);
+						var con = 'details' + link;
+						resolve(con);
+					})
+
+				}).then((details)=>{ return details })
+
+			}
 
 			async function message(items){
 				for(let item of items){
 					var departments = item.departments;
 					for(let department of departments){
-						var doctors = [];
-						var hrefs = department.hrefs;
-						var len = hrefs.length;
-						
-						for(let i=0;i<hrefs.length;i++){
-							var link = hrefs[i];
-							//得到一个doctors的对象，挂到 department 下；//此时返回的是一个单页面中的医生信息，累加就好了
-							var simpleDocs = await hrefsAwait(link);
-							doctors = doctors.concat(simpleDocs);
+						var doctors = department.doctors;
+						//遍历每一个医生的Href;
+						for(let doctor of doctors){
+							
+							var link = doctor.docHref;
+							var message = await detail(link);
+							//传入医生的详情信息页面，然后获取信息，导出图片文件
+							doctor.detail = message;
+							//doctor.detail = 'details';
+
 						}
-						department.doctors = doctors;
 					}
 				}
 				return items
 			}
 
-			//messaage(items)
+			return message(items)
 
-			//return items;
-			res.send(items);
+			//return items;导出message到文件
+			//res.send(items);
 				
-		})//.then((items)=>{ res.send(items); })
+		}).then((items)=>{ res.send(items); })
 	
 
 })
