@@ -212,7 +212,7 @@ app.get('/',function(req,res,next){
 					//录入每一个医生的相关信息:出现了一个两个小时都没有解决掉的Bug 就是
 						$('.part1 #datalist').find('.item').each(function(index,ele){
 							var $ele = $(ele);
-							var docHref = 'www.pumch' + $ele.find('a').attr('href');
+							var docHref = 'www.pumch.cn' + $ele.find('a').attr('href');
 							var docName = $ele.find('.info>.inline>.h2').text();
 							simpleDocs.push({ docHref:docHref,docName:docName})			
 						})
@@ -245,17 +245,35 @@ app.get('/',function(req,res,next){
 			return link(items)//.then((item)=>{ return items })
 			
 		}).then((items)=>{	
-			//最后显示的items的输出	此时已经有了所有医生的详情信息；我觉得总是这样循环是不是不太好,然后再在这个function中 获取对应的图片和医生的具体信息
+			//最后显示的items的输出,单个页面中每位医生的详情信息
 			const detail = (link)=>{
 				return new Promise((resolve,reject)=>{
 					superagent.get(link).end((err,sres)=>{
 						if(err){console.error('Error',err)}
 						var $ = cheerio.load(sres.text);
-						var con = 'details' + link;
-						resolve(con);
+						var intro = {};
+						var personalImg = $('.body_box.dorctordtail .part1 .img');
+						var personalText = $('.body_box.dorctordtail .part1 .text-box');
+						var local = link.split('/detail')[0];
+						//医生姓名
+						//var obj = personalText.find('.dorname>.title1').clone();
+						//obj.find(':nth-child(n)').remove();
+						
+						//==========================the next step 对图片进行导出；
+						var imgSrc = local + personalImg.children('img').attr('src');
+						intro = {
+							//name:obj.text(),//医生姓名
+							identity:personalText.find('.dorname>.title2:nth-of-type(1)').text(),//医生的身份信息
+							major:personalText.find('.dorname>.title2:nth-of-type(2)').text(),//医生擅长	
+							exper:personalText.find('.text>p').text(),//医生的经历
+							imgSrc:imgSrc//医生的图片地址
+						}
+						
+						//resolve('intro');
+						resolve(intro);
 					})
 
-				}).then((details)=>{ return details })
+				}).then((intro)=>{ return intro })
 
 			}
 
@@ -268,9 +286,9 @@ app.get('/',function(req,res,next){
 						for(let doctor of doctors){
 							
 							var link = doctor.docHref;
-							var message = await detail(link);
+							var intros = await detail(link);
 							//传入医生的详情信息页面，然后获取信息，导出图片文件
-							doctor.detail = message;
+							doctor.intro = intros;
 							//doctor.detail = 'details';
 
 						}
