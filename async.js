@@ -20,7 +20,7 @@
 var express = require('express');
 var cheerio = require('cheerio');
 var superagent = require('superagent');
-
+var fs = require('fs');
 
 var app = express();
 
@@ -256,16 +256,16 @@ app.get('/',function(req,res,next){
 						var personalText = $('.body_box.dorctordtail .part1 .text-box');
 						var local = link.split('/detail')[0];
 						//医生姓名
-						//var obj = personalText.find('.dorname>.title1').clone();
-						//obj.find(':nth-child(n)').remove();
+						var obj = personalText.find('.dorname>.title1').clone();
+						obj.find(':nth-child(n)').remove();
 						
 						//==========================the next step 对图片进行导出；
 						var imgSrc = local + personalImg.children('img').attr('src');
 						intro = {
-							//name:obj.text(),//医生姓名
-							identity:personalText.find('.dorname>.title2:nth-of-type(1)').text(),//医生的身份信息
-							major:personalText.find('.dorname>.title2:nth-of-type(2)').text(),//医生擅长	
-							exper:personalText.find('.text>p').text(),//医生的经历
+							name:obj.text(),//医生姓名
+							identity:personalText.find('.dorname>div:nth-of-type(2)').text(),//医生的身份信息
+							major:personalText.find('.dorname>div:nth-of-type(3)').text(),//医生擅长	
+							exper:personalText.find('.text>p').text(),//医生的经历{nth-of-type(n)对类选择器是不起作用的；
 							imgSrc:imgSrc//医生的图片地址
 						}
 						
@@ -302,11 +302,25 @@ app.get('/',function(req,res,next){
 			//return items;导出message到文件
 			//res.send(items);
 				
-		}).then((items)=>{ res.send(items); })
+		}).then((items)=>{ 
+			//将.json导出转为一个.txt文件	
+			
+			 
+			const saveContent = (items)=>{
+				fs.appendFile('./data/items.text',items,'utf-8',(err)=>{
+					if(err){console.log('Error',err)}
+				})
+			}
+			saveContent(items);
+			res.send(items);
+		})
 	
 
 })
 
-app.listen(8000,function(){
+
+
+
+app.listen(8080,function(){
 	console.log('port is running')
 })
